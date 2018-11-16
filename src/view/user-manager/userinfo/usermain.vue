@@ -8,7 +8,7 @@
           用户列表
         </p>
         <Card style="padding-top:20px;" :padding="0">
-          <Form ref="userSearchData" :model="userSearchData" :rules="userSearchData" style="margin:0px" inline>
+          <Form ref="userSearchData" :model="userSearchData" style="margin:0px" inline>
             <FormItem label="帐号" prop="username" :label-width=50>
               <Input v-model="userSearchData.username" placeholder="帐号" />
             </FormItem>
@@ -20,16 +20,12 @@
             </FormItem>
             <FormItem label="性别" prop="gender" :label-width=50>
               <Select v-model="userSearchData.gender" clearable style="width:70px">
-                <Option value='1'>男</Option>
-                <Option value='0'>女</Option>
+                <Option v-for="item in genderList" :value="item.value" :key="item.value">{{ item.label }}</Option>
               </Select>
             </FormItem>
             <FormItem label="状态" prop="status" :label-width=50>
               <Select v-model="userSearchData.status" clearable style="width:70px">
-                <Option value='0'>不启用</Option>
-                <Option value='1' checked>正常</Option>
-                <Option value='2'>禁用</Option>
-                <Option value='3'>删除</Option>
+                <Option v-for="item in statusList" :value="item.value" :key="item.value" :disabled="item.disabled">{{ item.label }}</Option>
               </Select>
             </FormItem>
             <FormItem>
@@ -66,10 +62,11 @@
       </Card>
       </Col>
     </Row>
-    <Modal :title="userFormItem.modalTitle" v-model="addUserModal" :closable="false" :mask-closable="false" :loading="userModalLoading" ok-text="提交" cancel-text="取消" @on-ok="userModalSubmit('userFormItem')" @on-cancel="userModalCancel('userFormItem')">
+    <!-- :loading="userModalLoading" ok-text="提交" cancel-text="取消" @on-ok="userModalSubmit('userFormItem')" @on-cancel="userModalCancel('userFormItem')" -->
+    <Modal :title="userFormItem.modalTitle" v-model="addUserModal" :closable="false" :mask-closable="false"  :loading="userModalLoading" ok-text="提交" cancel-text="取消" @on-ok="userModalSubmit('userFormItem')" @on-cancel="userModalCancel('userFormItem')">
       <Form ref="userFormItem" :model="userFormItem" :rules="userRuleValidate" :label-width=80>
         <FormItem label="帐号" prop="username">
-          <Input v-model="userFormItem.username" placeholder="输入登录帐号..." />
+          <Input v-model="userFormItem.username" :disabled="userFormItem.nameDisable" placeholder="输入登录帐号..." />
         </FormItem>
         <FormItem label="姓名" prop="nickname">
           <Input v-model="userFormItem.nickname" placeholder="输入用户名称..." />
@@ -92,23 +89,24 @@
         </FormItem>
         <FormItem label="性别" prop="gender">
           <RadioGroup v-model="userFormItem.gender">
-            <Radio label='1'>男</Radio>
-            <Radio label='0'>女</Radio>
+            <Radio v-for="item in genderList" :label='item.value'>{{item.label}}</Radio>
           </RadioGroup>
         </FormItem>
         <FormItem label="用户状态" prop="status">
           <Select v-model="userFormItem.status">
-            <Option value='0'>不启用</Option>
-            <Option value='1'>正常</Option>
-            <Option value='2'>禁用</Option>
-            <Option value='3' disabled>删除</Option>
+            <Option v-for="item in statusList" :value="item.value" :key="item.value" :disabled="item.disabled">{{ item.label }}</Option>
           </Select>
         </FormItem>
         <FormItem label="备注" prop="descn">
           <Input v-model="userFormItem.descn" type="textarea" :autosize="{minRows: 2,maxRows: 5}" placeholder="备注信息..." />
         </FormItem>
       </Form>
+      <!-- <div slot="footer">
+        <Button type="text" size="large" @click="userModalCancel('userFormItem')">取消</Button>
+        <Button type="primary" size="large" @click="userModalSubmit('userFormItem')">确定</Button>
+      </div> -->
     </Modal>
+
     <Modal title="修改用户角色" v-model="roleModal" :closable="false" :mask-closable="false" ok-text="提交" cancel-text="取消" @on-ok="roleModalSubmit()" @on-cancel="roleModalCancel()">
       <Form :rules="roleRuleValidate" ref="roleFormItem" :model="roleFormItem">
         <FormItem prop="roleList">
@@ -122,8 +120,9 @@
   </div>
 </template>
 <script>
-import { axFindUsersWithPaging, axAddUser, axDeleteUser } from '@/api/userinfo'
-import { findAllRoles } from '@/api/roleinfo'
+
+import { axFindUsersWithPaging, axAddUser, axUpdateUser, axDeleteUser } from '@/api/userinfo'
+import { axFindAllRoles } from '@/api/roleinfo'
 export default {
   name: "userinfo-table",
 
@@ -242,21 +241,22 @@ export default {
           }
         },
         {
-          key: "roles",
+          key: "roleName",
           title: "用户角色",
           align: "center",
           width: 150,
           render: (h, params) => {
-
-            for (var i = 0; i < params.row.roles.length; i++) {
-              return h(
-                "Tag", {
-                  props: {
-                    type: "border",
-                  }
-                },
-                params.row.roles[i].name
-              );
+            if (params.row.roleName) {
+              let rolearr = params.row.roleName.split(",");
+              var tags = [];
+              tags.push(h('Tag', { props: { type: "border" } }, rolearr[0]));
+              if (rolearr.length > 1) {
+                tags.push(h('Tag', { props: { type: "border" } }, "..."));
+              }
+              // for (var i = 0; i < rolearr.length; i++) {
+              //   tags.push(h('Tag',{props:{type:"border"}},rolearr[i]));
+              // }
+              return h('div', tags);
             }
           }
         },
@@ -340,11 +340,37 @@ export default {
 
       userData: [],
 
+      statusList: [{
+          value: 0,
+          label: '不启用'
+        },
+        {
+          value: 1,
+          label: '正常'
+        },
+        {
+          value: 2,
+          label: '禁用'
+        }
+        // ,
+        // {
+        //   value: 3,
+        //   label: '删除',
+        //   disabled:true
+        // }
+      ],
+      genderList: [{
+        value: 1,
+        label: '男'
+      }, {
+        value: 0,
+        label: '女'
+      }],
       userSearchData: {
         username: "",
         nickname: "",
         status: 1,
-        gender: "",
+        gender: null,
         cellphone: ""
       },
 
@@ -362,6 +388,7 @@ export default {
       userFormItem: {
         modalTitle: "",
         modalSubmitType: "",
+        nameDisable: false,
         id: "",
         username: "",
         nickname: "",
@@ -446,18 +473,17 @@ export default {
     initRoles() {
       this.roleFormItem.roleList = [];
       var selectUser = this.userTableSelectData;
+      let userId = null;
       if (selectUser.length == 1) {
-
-        for (var i = 0; i < selectUser[0].roles.length; i++) {
-          this.roleFormItem.roleList[i] = selectUser[0].roles[i].id;
-        }
+        userId = selectUser[0].id;
       }
-      var data = {};
+      var data = { "userId": userId };
       var token = "123";
 
       //axios-查询用户角色
-      findAllRoles({ data, token }).then(res => {
-        this.roleFormItem.allRoles = res.data.data;
+      axFindAllRoles({ data, token }).then(res => {
+        this.roleFormItem.allRoles = res.data.data.allRole;
+        this.roleFormItem.roleList = res.data.data.userRole;
       }).catch(err => {
         this.$Notice.error({
           title: "错误提示",
@@ -480,12 +506,12 @@ export default {
       this.userFormItem.status = 1;
       this.userFormItem.modalTitle = "添加用户";
       this.userFormItem.modalSubmitType = "add";
-
+      this.userFormItem.nameDisable = false;
       this.addUserModal = true;
     },
     editUser(rowdata) {
       this.userFormItem = rowdata.row;
-
+      this.userFormItem.nameDisable = true;
       this.userFormItem.modalTitle = "修改用户";
       this.userFormItem.modalSubmitType = "edit";
       this.addUserModal = true;
@@ -561,34 +587,25 @@ export default {
                 this.refreshTable();
                 this.$refs[name].resetFields();
                 this.loading = false;
+                this.addUserModal=false;
               } else {
                 this.$Modal.error({
                   width: 650,
                   title: "错误提示",
-                  content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>500 " +
-                    res.data.msg +
-                    " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                    res.data.data +
-                    "</p>"
+                  content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>错误代码： " + res.data.code +
+                    " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" + res.data.message + "</p>"
                 });
+                this.loading = false;
+                this.addUserModal=false;
               }
-
             }).catch(error => {
-              this.$Notice.error({
-                title: "错误提示",
-                duration: 5,
-                desc: error + "<br/>无法获取后台数据！"
-              });
+              this.$Notice.error({ title: "错误提示", duration: 5, desc: error + "<br/>无法获取后台数据！" });
               this.loading = false;
-              this.userModalLoading = false;
+              this.addUserModal=false;
             });
-
-
             //修改用户
           } else if (this.userFormItem.modalSubmitType == "edit") {
-            this.$axios
-              .post("/admin-server/user/updateUser", postData)
-              .then(res => {
+            axUpdateUser(params).then(res => {
                 if (res.data.code == 200) {
                   this.$Notice.success({
                     // title: '提示消息',
@@ -597,17 +614,21 @@ export default {
                   });
                   this.refreshTable();
                   this.$refs[name].resetFields();
+                  this.loading = false;
+                  this.addUserModal=false;
                 }
                 if (res.data.code == 500) {
                   this.$Modal.error({
                     width: 650,
                     title: "错误提示",
-                    content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>500 " +
-                      res.data.msg +
+                    content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>错误代码： " +
+                      res.data.code +
                       " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                      res.data.data +
+                      res.data.message +
                       "</p>"
                   });
+                  this.loading = false;
+                  this.addUserModal=false;
                 }
               })
               .catch(error => {
@@ -617,7 +638,7 @@ export default {
                   desc: error + "<br/>无法获取后台数据！"
                 });
                 this.loading = false;
-                this.userModalLoading = false;
+                this.addUserModal=false;
               });
           } else {
             this.$Message.error("Fail!  DATA ERROR!!!");
@@ -629,16 +650,23 @@ export default {
             this.$nextTick(() => {
               this.userModalLoading = true;
             });
-          }, 500);
+          }, 1000);
           this.$Message.error({
             content: '请检查表单填写信息!',
             duration: 3
           });
         }
       });
+
+      //清除验证
+      this.$refs[name].resetFields();
     },
     userModalCancel(name) {
-      //this.$refs[name].resetFields();
+      this.$refs[name].resetFields();
+      if (this.userFormItem.modalSubmitType == "edit") {
+        this.refreshTable();
+      }
+      this.addUserModal=false;
     },
     selectionChange(selection) {
       if (selection.length == 0) {

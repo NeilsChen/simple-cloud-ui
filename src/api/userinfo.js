@@ -36,3 +36,12 @@ export const axAddUser = ( data ) => {
     method: 'post'
   })
 }
+
+export const axUpdateUser = ( data ) => {
+  console.log(data);
+  return axios.request({
+    url: '/admin-server/user/updateUser',
+    data: data,
+    method: 'post'
+  })
+}
