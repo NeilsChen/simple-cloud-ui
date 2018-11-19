@@ -45,3 +45,11 @@ export const axUpdateUser = ( data ) => {
     method: 'post'
   })
 }
+
+export const axUpdateUserRole = ( data ) => {
+  return axios.request({
+    url: '/admin-server/user/updateUserRole',
+    data: data,
+    method: 'post'
+  })
+}

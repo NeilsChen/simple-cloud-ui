@@ -53,7 +53,7 @@
         </Card>
         <Card style="margin-top:10px;" :padding="0" :bordered="false">
           <Row>
-            <Table height="520" :loading="loading" :columns="userColumn" :data="userData" border stripe @on-selection-change="selectionChange"></Table>
+            <Table height="520" ref="userTableRef" :loading="loading" :columns="userColumn" :data="userData" border stripe @on-selection-change="selectionChange"></Table>
           </Row>
           <Row type="flex" justify="center">
             <Page style="margin:10px;" :total="pageInfo.totalPages" :current="pageInfo.currentPage" :page-size="pageInfo.pageSize" :page-size-opts="pageInfo.pageSizeOpt" @on-change="changePage" @on-page-size-change="changeSize" show-elevator show-sizer show-total placement="top"></Page>
@@ -63,7 +63,7 @@
       </Col>
     </Row>
     <!-- :loading="userModalLoading" ok-text="提交" cancel-text="取消" @on-ok="userModalSubmit('userFormItem')" @on-cancel="userModalCancel('userFormItem')" -->
-    <Modal :title="userFormItem.modalTitle" v-model="addUserModal" :closable="false" :mask-closable="false"  :loading="userModalLoading" ok-text="提交" cancel-text="取消" @on-ok="userModalSubmit('userFormItem')" @on-cancel="userModalCancel('userFormItem')">
+    <Modal :title="userFormItem.modalTitle" v-model="addUserModal" :closable="false" :mask-closable="false" :loading="userModalLoading" ok-text="提交" cancel-text="取消" @on-ok="userModalSubmit('userFormItem')" @on-cancel="userModalCancel('userFormItem')">
       <Form ref="userFormItem" :model="userFormItem" :rules="userRuleValidate" :label-width=80>
         <FormItem label="帐号" prop="username">
           <Input v-model="userFormItem.username" :disabled="userFormItem.nameDisable" placeholder="输入登录帐号..." />
@@ -83,7 +83,8 @@
         <FormItem label="出生日期" prop="birthday">
           <Row>
             <Col span="11">
-            <DatePicker type="date" format="yyyy-MM-dd" placeholder="选择日期" @on-change="userFormItem.birthday=$event" value="userFormItem.birthday" />
+            <!--  <DatePicker type="date" format="yyyy-MM-dd" placeholder="选择日期" @on-change="userFormItem.birthday=$event" value="userFormItem.birthday" /> -->
+            <DatePicker :value="userFormItem.birthday" @on-change="userFormItem.birthday=$event" type="date" format="yyyy-MM-dd" placeholder="选择日期" />
             </Col>
           </Row>
         </FormItem>
@@ -106,12 +107,17 @@
         <Button type="primary" size="large" @click="userModalSubmit('userFormItem')">确定</Button>
       </div> -->
     </Modal>
-
-    <Modal title="修改用户角色" v-model="roleModal" :closable="false" :mask-closable="false" ok-text="提交" cancel-text="取消" @on-ok="roleModalSubmit()" @on-cancel="roleModalCancel()">
-      <Form :rules="roleRuleValidate" ref="roleFormItem" :model="roleFormItem">
+    <Modal title="修改用户角色" v-model="roleModal" width="580" :loading="roleModalLoading" :closable="false" :mask-closable="false" ok-text="提交" cancel-text="取消" @on-ok="roleModalSubmit()" @on-cancel="roleModalCancel()">
+      <Form :rules="roleRuleValidate" ref="roleFormRef" :model="roleFormItem">
         <FormItem prop="roleList">
-          <CheckboxGroup v-model="roleFormItem.roleList">
-            <Checkbox v-for="item in roleFormItem.allRoles" :label="item.id">{{item.name}}&nbsp;&nbsp;({{item.descn}})&nbsp;&nbsp;</Checkbox>
+          <div style="border-bottom: 1px solid #e9e9e9;padding-bottom:6px;margin-bottom:6px;">
+            <Checkbox :indeterminate="roleFormItem.indeterminate" :value="roleFormItem.checkAll" @click.prevent.native="roleFormHandleCheckAll">全选</Checkbox>
+          </div>
+          <CheckboxGroup v-model="roleFormItem.roleList"  @on-change="roleFormCheckAllGroupChange">
+            <Checkbox v-for="item in roleFormItem.allRoles" :label="item.id" style="width:240px">
+              {{item.name.length>6?item.name.substr(0,5)+'..':item.name}}&nbsp;
+               ({{item.descn.length>12?item.descn.substr(0,12)+'..':item.descn}})&nbsp;
+            </Checkbox>
           </CheckboxGroup>
         </FormItem>
         <!--  {{this.roleFormItem.roleList}} -->
@@ -120,8 +126,7 @@
   </div>
 </template>
 <script>
-
-import { axFindUsersWithPaging, axAddUser, axUpdateUser, axDeleteUser } from '@/api/userinfo'
+import { axFindUsersWithPaging, axAddUser, axUpdateUser, axDeleteUser, axUpdateUserRole } from '@/api/userinfo'
 import { axFindAllRoles } from '@/api/roleinfo'
 export default {
   name: "userinfo-table",
@@ -402,7 +407,9 @@ export default {
       },
       roleFormItem: {
         roleList: [],
-        allRoles: []
+        allRoles: [],
+        indeterminate:false,
+        checkAll:false
       },
       userRuleValidate: {
         username: [
@@ -423,6 +430,7 @@ export default {
 
       loading: true,
       userModalLoading: true,
+      roleModalLoading: true,
       userTableSelectData: [],
       canEditUserRole: true,
       canDelete: true
@@ -442,6 +450,7 @@ export default {
       this.refreshTable();
     },
     refreshTable() {
+      this.$Loading.start();
       this.loading = true;
       var data = {
         username: this.userSearchData.username,
@@ -459,13 +468,11 @@ export default {
         this.pageInfo.totalPages = res.data.data.total;
         this.userData = res.data.data.list;
         this.loading = false;
+        this.$Loading.finish();
       }).catch(err => {
-        this.$Notice.error({
-          title: "错误提示",
-          duration: 5,
-          desc: err + "<br/>无法获取后台数据！"
-        });
+        this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
         this.loading = false;
+        this.$Loading.error();
       });
     },
 
@@ -484,12 +491,18 @@ export default {
       axFindAllRoles({ data, token }).then(res => {
         this.roleFormItem.allRoles = res.data.data.allRole;
         this.roleFormItem.roleList = res.data.data.userRole;
+        if(this.roleFormItem.roleList.length==0){
+          this.roleFormItem.indeterminate=false;
+          this.roleFormItem.checkAll=false;
+        }else if(this.roleFormItem.allRoles.length==this.roleFormItem.roleList.length){
+          this.roleFormItem.indeterminate=false;
+          this.roleFormItem.checkAll=true;
+        }else{
+          this.roleFormItem.indeterminate=true;
+          this.roleFormItem.checkAll=false;
+        }
       }).catch(err => {
-        this.$Notice.error({
-          title: "错误提示",
-          duration: 5,
-          desc: err + "<br/>无法获取后台数据！"
-        });
+        this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
       });
     },
 
@@ -515,16 +528,23 @@ export default {
       this.userFormItem.modalTitle = "修改用户";
       this.userFormItem.modalSubmitType = "edit";
       this.addUserModal = true;
+      //点击编辑时选中当前行
+      this.$refs.userTableRef.selectAll(false);
+      this.$refs.userTableRef.toggleSelect(rowdata.index);
     },
-    deleteUser(data, isbatch) {
-      if (isbatch) {
+    deleteUser(data, single) {
+      if (single) {
         this.userTableSelectData = [];
         this.userTableSelectData[0] = data.row;
+        //点击行删除时选中当前行
+        this.$refs.userTableRef.selectAll(false);
+        this.$refs.userTableRef.toggleSelect(data.index);
       }
       if (this.userTableSelectData.length > 0) {
+
         this.$Modal.confirm({
-          title: "提示",
-          content: "<h2>确定删除用户信息？</h2>",
+          title: "<font color='red'>删除确认</font>",
+          content: "<h3>确定删除选中用户信息？</h3>",
           onOk: () => {
             let ids = "";
             for (var i = 0; i < this.userTableSelectData.length; i++) {
@@ -533,27 +553,22 @@ export default {
               }
               ids = ids + this.userTableSelectData[i].id;
             }
-
-
             let params = new URLSearchParams();
             params.append('data', ids);
             params.append('token', '123');
 
             //axios-删除用户
             axDeleteUser(params).then(res => {
-              this.$Notice.success({
-                // title: '提示消息',
-                duration: 3,
-                desc: "删除用户成功！"
-              });
-              this.refreshTable();
-              this.$Loading.finish();
+              if (res.data.code == 200) {
+                this.$Notice.success({ desc: "删除用户成功！" });
+                this.refreshTable();
+                this.canEditUserRole = true;
+                this.canDelete = true;
+              } else {
+                this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+              }
             }).catch(err => {
-              this.$Notice.error({
-                title: "错误提示",
-                duration: 5,
-                desc: err + "<br/>无法获取后台数据！"
-              });
+              this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
               this.loading = false;
             });
           }
@@ -579,66 +594,45 @@ export default {
           if (this.userFormItem.modalSubmitType == "add") {
             axAddUser(params).then(res => {
               if (res.data.code == 200) {
-                this.$Notice.success({
-                  // title: '提示消息',
-                  duration: 3,
-                  desc: "用户添加成功！"
-                });
+                this.$Notice.success({ desc: "用户添加成功！" });
                 this.refreshTable();
                 this.$refs[name].resetFields();
                 this.loading = false;
-                this.addUserModal=false;
+                this.addUserModal = false;
+                this.canDelete=true;
+                this.canEditUserRole=true;
               } else {
-                this.$Modal.error({
-                  width: 650,
-                  title: "错误提示",
-                  content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>错误代码： " + res.data.code +
-                    " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" + res.data.message + "</p>"
-                });
+                this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
                 this.loading = false;
-                this.addUserModal=false;
+                this.addUserModal = false;
               }
             }).catch(error => {
-              this.$Notice.error({ title: "错误提示", duration: 5, desc: error + "<br/>无法获取后台数据！" });
+              this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
               this.loading = false;
-              this.addUserModal=false;
+              this.addUserModal = false;
             });
             //修改用户
           } else if (this.userFormItem.modalSubmitType == "edit") {
             axUpdateUser(params).then(res => {
                 if (res.data.code == 200) {
-                  this.$Notice.success({
-                    // title: '提示消息',
-                    duration: 3,
-                    desc: "用户修改成功！"
-                  });
+                  this.$Notice.success({ desc: "用户修改成功！" });
                   this.refreshTable();
                   this.$refs[name].resetFields();
                   this.loading = false;
-                  this.addUserModal=false;
+                  this.addUserModal = false;
+                  this.canDelete=true;
+                  this.canEditUserRole=true;
                 }
                 if (res.data.code == 500) {
-                  this.$Modal.error({
-                    width: 650,
-                    title: "错误提示",
-                    content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>错误代码： " +
-                      res.data.code +
-                      " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                      res.data.message +
-                      "</p>"
-                  });
+                  this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
                   this.loading = false;
-                  this.addUserModal=false;
+                  this.addUserModal = false;
                 }
               })
               .catch(error => {
-                this.$Notice.error({
-                  title: "错误提示",
-                  duration: 5,
-                  desc: error + "<br/>无法获取后台数据！"
-                });
+                this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
                 this.loading = false;
-                this.addUserModal=false;
+                this.addUserModal = false;
               });
           } else {
             this.$Message.error("Fail!  DATA ERROR!!!");
@@ -651,13 +645,9 @@ export default {
               this.userModalLoading = true;
             });
           }, 1000);
-          this.$Message.error({
-            content: '请检查表单填写信息!',
-            duration: 3
-          });
+          this.$Message.error({ content: '请检查表单填写信息!' });
         }
       });
-
       //清除验证
       this.$refs[name].resetFields();
     },
@@ -665,8 +655,10 @@ export default {
       this.$refs[name].resetFields();
       if (this.userFormItem.modalSubmitType == "edit") {
         this.refreshTable();
+        this.canDelete=true;
+        this.canEditUserRole=true;
       }
-      this.addUserModal=false;
+      this.addUserModal = false;
     },
     selectionChange(selection) {
       if (selection.length == 0) {
@@ -680,58 +672,98 @@ export default {
     },
     //修改用户角色信息
     roleModalSubmit() {
-      var userids = [];
-      for (var i = 0; i < this.userTableSelectData.length; i++) {
-        userids[i] = this.userTableSelectData[i].id;
-      }
-      var data = {
-        userId: userids,
-        roleId: this.roleFormItem.roleList
-      };
 
-      let postData = this.$qs.stringify({
-        data: JSON.stringify(data),
-        token: "123"
+      this.$refs.roleFormRef.validate(valid => {
+        if (valid) {
+          var userids = [];
+          for (var i = 0; i < this.userTableSelectData.length; i++) {
+            userids[i] = this.userTableSelectData[i].id;
+          }
+          var data = {
+            userId: userids,
+            roleId: this.roleFormItem.roleList
+          };
+
+          let params = new URLSearchParams();
+          params.append('data', JSON.stringify(data));
+          params.append('token', '123');
+
+          axUpdateUserRole(params).then(res => {
+            if (res.data.code == 200) {
+              this.$Notice.success({ desc: "修改用户角色成功！" });
+              this.refreshTable();
+              this.roleModal = false;
+              this.canEditUserRole = true;
+              this.canDelete = true;
+
+            } else {
+              this.$Notice.success({ title: "错误代码：" + res.data.code, desc: res.data.message });
+            }
+          }).catch(error => {
+            this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+            this.roleModal = false;
+          });
+        } else {
+          setTimeout(() => {
+            this.roleModalLoading = false;
+            this.$nextTick(() => {
+              this.userModalLoading = true;
+            });
+          }, 1000);
+          this.$Message.error({ content: '请检查表单信息!' });
+        }
       });
 
-      this.$axios
-        .post("/admin-server/user/updateUserRole", postData)
-        .then(res => {
-          console.log(res);
-          if (res.data.code == 200) {
-            this.$Notice.success({
-              // title: '提示消息',
-              duration: 3,
-              desc: "修改用户角色成功！"
-            });
-            this.refreshTable();
-            this.$Loading.finish();
-          } else {
-            this.$Modal.error({
-              width: 650,
-              title: "错误提示",
-              content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>500 " +
-                res.data.msg +
-                " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                res.data.data +
-                "</p>"
-            });
-            this.$Loading.error();
-          }
-        });
     },
 
     roleModalCancel() {
 
+    },
+
+
+    /**
+     * [roleFormHandleCheckAll 角色面板全选操作  ]
+     * @return {[type]} [description] TODO..
+     */
+    //TODO..
+    roleFormHandleCheckAll(){
+      console.log(this.roleFormItem.indeterminate);
+      console.log(this.roleFormItem.checkAll);
+       if (this.roleFormItem.indeterminate) {
+            this.roleFormItem.checkAll = false;
+        } else {
+            this.roleFormItem.checkAll = !this.roleFormItem.checkAll;
+        }
+        this.roleFormItem.indeterminate = false;
+
+        if (this.roleFormItem.checkAll) {
+          var checked = new Array();
+          var ar = this.roleFormItem.allRoles;
+          for(var key in ar){
+            checked.push(ar[key].id);
+          }
+            this.roleFormItem.roleList = checked;
+            console.log(this.roleFormItem.roleList);
+        } else {
+            this.roleFormItem.roleList = [];
+        }
+    },
+    roleFormCheckAllGroupChange(data){
+      if (data.length === this.roleFormItem.allRoles.length) {
+          this.roleFormItem.indeterminate = false;
+          this.roleFormItem.checkAll = true;
+      } else if (data.length > 0) {
+          this.roleFormItem.indeterminate = true;
+          this.roleFormItem.checkAll = false;
+      } else {
+          this.roleFormItem.indeterminate = false;
+          this.roleFormItem.checkAll = false;
+      }
     }
   },
   mounted() {
-    this.$Loading.start();
-
     this.init();
     this.refreshTable();
-
-    this.$Loading.finish();
   }
 };
 
