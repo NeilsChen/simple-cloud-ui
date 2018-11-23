@@ -65,6 +65,7 @@
   </div>
 </template>
 <script>
+import { axAddOrUpdatePermission, axFindPermissionTreeData, axDeletePermission } from '@/api/permissioninfo'
 export default {
   name: "userinfo-table",
 
@@ -137,50 +138,68 @@ export default {
       this.formEditDisable = false;
     },
     deleteDataButton() {
-      this.resourceDetail = {};
+      console.log(this.resourceDetail);
+      this.$Loading.start();
+      if (this.resourceDetail.children) {
+        this.$Modal.confirm({
+          title: "<font color='orange'>删除确认</font>",
+          content: "<h3>确定删除【" + this.resourceDetail.title + "】节点及其所有子节点资源？</h3>",
+          onOk: () => {
+            this.deletePermission();
+          },
+          onCancel: () => {
+            this.$Loading.finish();
+          }
+        });
+      } else {
+        this.deletePermission();
+      }
       this.buttonShow = false;
       this.formEditDisable = true;
     },
-    saveData() {
-      let postData = this.$qs.stringify({
-        data: JSON.stringify(this.resourceDetail),
-        token: "123"
-      });
-      this.$axios
-        .post("/admin-server/permission/addOrUpdatePermission", postData)
-        .then(res => {
-          if (res.data.code == 200) {
-            this.$Notice.success({
-              // title: '提示消息',
-              duration: 3,
-              desc: "操作成功！"
-            });
-            this.refreshTable();
-            this.$refs[name].resetFields();
-            this.$Loading.finish();
-          }
-          if (res.data.code == 500) {
-            this.$Modal.error({
-              width: 650,
-              title: "错误提示",
-              content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>500 " +
-                res.data.msg +
-                " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                res.data.data +
-                "</p>"
-            });
-            this.$Loading.error();
-          }
-        })
-        .catch(error => {
-          this.$Notice.error({
-            title: "错误提示",
-            duration: 5,
-            desc: error + "<br/>无法获取后台数据！"
-          });
 
-          this.loading = false;
-        });
+    deletePermission() {
+      let params = new URLSearchParams();
+      params.append('data', JSON.stringify(this.resourceDetail.id));
+      params.append('token', "123");
+      //axios-删除资源
+      axDeletePermission(params).then(res => {
+        if (res.data.code == 200) {
+          this.$Notice.success({ desc: "删除资源成功！" });
+          this.refreshTable();
+          this.$Loading.finish();
+        } else {
+          this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+          this.$Loading.error();
+        }
+      }).catch(error => {
+        this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+        this.$Loading.error();
+      });
+    },
+
+    saveData() {
+
+      let params = new URLSearchParams();
+      params.append('data', JSON.stringify(this.resourceDetail));
+      params.append('token', "123");
+
+      //axios-增加或修改资源
+      axAddOrUpdatePermission(params).then(res => {
+        if (res.data.code == 200) {
+          this.$Notice.success({ desc: "操作成功！" });
+          this.refreshTable();
+          this.deleteButtonDisabled = true;
+          this.$Loading.finish();
+        } else {
+          this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+          this.$Loading.error();
+        }
+      }).catch(error => {
+        this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+        this.loading = false;
+        this.$Loading.error();
+      });
 
     },
     cancelSave() {
@@ -190,7 +209,7 @@ export default {
     },
     refreshTable() {
       this.EDButtonDisable = true;
-      this.resourceDetail = {};
+      // this.resourceDetail = {};、
       this.initTreeData();
     },
 
@@ -199,29 +218,19 @@ export default {
       //获取后台节点
       let data = {};
       let token = "123";
-      this.$axios.get("/admin-server/permission/findPermissionTreeData", {
-          params: { token: token }
-        })
-        .then(res => {
-          if (res.data.code == 200) {
-            this.treedata = res.data.data;
-          } else {
-            this.$Notice.error({
-              title: "错误提示",
-              duration: 5,
-              desc: res + "<br/>无法获取后台数据！"
-            });
-          }
-        })
-        .catch(error => {
-          this.$Notice.error({
-            title: "错误提示",
-            duration: 5,
-            desc: error + "<br/>无法获取后台数据！"
-          });
-        });
-    }
+      axFindPermissionTreeData({ data, token }).then(res => {
+        if (res.data.code == 200) {
+          this.treedata = res.data.data;
+        } else {
+          this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+        }
+      }).catch(error => {
+        this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+      });
 
+      this.buttonShow = false;
+      this.formEditDisable = true;
+    }
   },
   mounted() {
     this.$Loading.start();

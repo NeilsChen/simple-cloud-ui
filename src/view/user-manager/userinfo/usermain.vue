@@ -113,10 +113,9 @@
           <div style="border-bottom: 1px solid #e9e9e9;padding-bottom:6px;margin-bottom:6px;">
             <Checkbox :indeterminate="roleFormItem.indeterminate" :value="roleFormItem.checkAll" @click.prevent.native="roleFormHandleCheckAll">全选</Checkbox>
           </div>
-          <CheckboxGroup v-model="roleFormItem.roleList"  @on-change="roleFormCheckAllGroupChange">
+          <CheckboxGroup v-model="roleFormItem.roleList" @on-change="roleFormCheckAllGroupChange">
             <Checkbox v-for="item in roleFormItem.allRoles" :label="item.id" style="width:240px">
-              {{item.name.length>6?item.name.substr(0,5)+'..':item.name}}&nbsp;
-               ({{item.descn.length>12?item.descn.substr(0,12)+'..':item.descn}})&nbsp;
+              {{item.name.length>6?item.name.substr(0,5)+'..':item.name}}&nbsp; ({{item.descn.length>12?item.descn.substr(0,12)+'..':item.descn}})&nbsp;
             </Checkbox>
           </CheckboxGroup>
         </FormItem>
@@ -297,7 +296,7 @@ export default {
           key: "descn",
           title: "备注信息",
           align: "center",
-          width: 150
+          width: 250
         },
         {
           title: "操作",
@@ -408,8 +407,8 @@ export default {
       roleFormItem: {
         roleList: [],
         allRoles: [],
-        indeterminate:false,
-        checkAll:false
+        indeterminate: false,
+        checkAll: false
       },
       userRuleValidate: {
         username: [
@@ -465,10 +464,14 @@ export default {
 
       // axios-查询用户数据
       axFindUsersWithPaging({ data, token }).then(res => {
-        this.pageInfo.totalPages = res.data.data.total;
-        this.userData = res.data.data.list;
-        this.loading = false;
-        this.$Loading.finish();
+        if (res.data.code == 200) {
+          this.pageInfo.totalPages = res.data.data.total;
+          this.userData = res.data.data.list;
+          this.loading = false;
+          this.$Loading.finish();
+        } else {
+          this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+        }
       }).catch(err => {
         this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
         this.loading = false;
@@ -489,17 +492,21 @@ export default {
 
       //axios-查询用户角色
       axFindAllRoles({ data, token }).then(res => {
-        this.roleFormItem.allRoles = res.data.data.allRole;
-        this.roleFormItem.roleList = res.data.data.userRole;
-        if(this.roleFormItem.roleList.length==0){
-          this.roleFormItem.indeterminate=false;
-          this.roleFormItem.checkAll=false;
-        }else if(this.roleFormItem.allRoles.length==this.roleFormItem.roleList.length){
-          this.roleFormItem.indeterminate=false;
-          this.roleFormItem.checkAll=true;
-        }else{
-          this.roleFormItem.indeterminate=true;
-          this.roleFormItem.checkAll=false;
+        if (res.data.code == 200) {
+          this.roleFormItem.allRoles = res.data.data.allRole;
+          this.roleFormItem.roleList = res.data.data.userRole;
+          if (this.roleFormItem.roleList.length == 0) {
+            this.roleFormItem.indeterminate = false;
+            this.roleFormItem.checkAll = false;
+          } else if (this.roleFormItem.allRoles.length == this.roleFormItem.roleList.length) {
+            this.roleFormItem.indeterminate = false;
+            this.roleFormItem.checkAll = true;
+          } else {
+            this.roleFormItem.indeterminate = true;
+            this.roleFormItem.checkAll = false;
+          }
+        } else {
+          this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
         }
       }).catch(err => {
         this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
@@ -599,8 +606,8 @@ export default {
                 this.$refs[name].resetFields();
                 this.loading = false;
                 this.addUserModal = false;
-                this.canDelete=true;
-                this.canEditUserRole=true;
+                this.canDelete = true;
+                this.canEditUserRole = true;
               } else {
                 this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
                 this.loading = false;
@@ -620,8 +627,8 @@ export default {
                   this.$refs[name].resetFields();
                   this.loading = false;
                   this.addUserModal = false;
-                  this.canDelete=true;
-                  this.canEditUserRole=true;
+                  this.canDelete = true;
+                  this.canEditUserRole = true;
                 }
                 if (res.data.code == 500) {
                   this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
@@ -655,8 +662,8 @@ export default {
       this.$refs[name].resetFields();
       if (this.userFormItem.modalSubmitType == "edit") {
         this.refreshTable();
-        this.canDelete=true;
-        this.canEditUserRole=true;
+        this.canDelete = true;
+        this.canEditUserRole = true;
       }
       this.addUserModal = false;
     },
@@ -726,38 +733,38 @@ export default {
      * @return {[type]} [description] TODO..
      */
     //TODO..
-    roleFormHandleCheckAll(){
+    roleFormHandleCheckAll() {
       console.log(this.roleFormItem.indeterminate);
       console.log(this.roleFormItem.checkAll);
-       if (this.roleFormItem.indeterminate) {
-            this.roleFormItem.checkAll = false;
-        } else {
-            this.roleFormItem.checkAll = !this.roleFormItem.checkAll;
-        }
-        this.roleFormItem.indeterminate = false;
-
-        if (this.roleFormItem.checkAll) {
-          var checked = new Array();
-          var ar = this.roleFormItem.allRoles;
-          for(var key in ar){
-            checked.push(ar[key].id);
-          }
-            this.roleFormItem.roleList = checked;
-            console.log(this.roleFormItem.roleList);
-        } else {
-            this.roleFormItem.roleList = [];
-        }
-    },
-    roleFormCheckAllGroupChange(data){
-      if (data.length === this.roleFormItem.allRoles.length) {
-          this.roleFormItem.indeterminate = false;
-          this.roleFormItem.checkAll = true;
-      } else if (data.length > 0) {
-          this.roleFormItem.indeterminate = true;
-          this.roleFormItem.checkAll = false;
+      if (this.roleFormItem.indeterminate) {
+        this.roleFormItem.checkAll = false;
       } else {
-          this.roleFormItem.indeterminate = false;
-          this.roleFormItem.checkAll = false;
+        this.roleFormItem.checkAll = !this.roleFormItem.checkAll;
+      }
+      this.roleFormItem.indeterminate = false;
+
+      if (this.roleFormItem.checkAll) {
+        var checked = new Array();
+        var ar = this.roleFormItem.allRoles;
+        for (var key in ar) {
+          checked.push(ar[key].id);
+        }
+        this.roleFormItem.roleList = checked;
+        console.log(this.roleFormItem.roleList);
+      } else {
+        this.roleFormItem.roleList = [];
+      }
+    },
+    roleFormCheckAllGroupChange(data) {
+      if (data.length === this.roleFormItem.allRoles.length) {
+        this.roleFormItem.indeterminate = false;
+        this.roleFormItem.checkAll = true;
+      } else if (data.length > 0) {
+        this.roleFormItem.indeterminate = true;
+        this.roleFormItem.checkAll = false;
+      } else {
+        this.roleFormItem.indeterminate = false;
+        this.roleFormItem.checkAll = false;
       }
     }
   },

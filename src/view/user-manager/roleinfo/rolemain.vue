@@ -8,19 +8,16 @@
           角色列表
         </p>
         <Card style="padding-top:20px;" :padding="0">
-          <Form ref="searchData" :model="searchData" :rules="searchData" style="margin:0px" inline>
+          <Form ref="searchData" :model="searchData" style="margin:0px" inline>
             <FormItem label="名称" prop="name" :label-width=50>
-              <Input type="text" v-model="searchData.name" placeholder="名称"  />
+              <Input type="text" v-model="searchData.name" placeholder="名称" />
             </FormItem>
             <FormItem label="备注信息" prop="descn" :label-width=70>
               <Input v-model="searchData.descn" placeholder="备注信息" />
             </FormItem>
             <FormItem label="状态" prop="status" :label-width=50>
               <Select v-model="searchData.status" clearable style="width:70px">
-                <Option value='0'>不启用</Option>
-                <Option value='1' checked>正常</Option>
-                <Option value='2'>禁用</Option>
-                <Option value='3'>删除</Option>
+                <Option v-for="item in statusList" :value="item.value" :key="item.value" :disabled="item.disabled">{{ item.label }}</Option>
               </Select>
             </FormItem>
             <span style="padding-left:50px;" />
@@ -35,9 +32,8 @@
         <Card style="margin-top:10px;">
           <Row type="flex" justify="start">
             <ButtonGroup size="large">
-              <Button icon="md-add" @click="addData">添加</Button>
-              <Button icon="md-close" @click="deleteData" :disabled="canDelete">删除</Button>
-              
+              <Button icon="md-add" @click="addRoleButton">添加</Button>
+              <Button icon="md-close" @click="deleteRoleButton" :disabled="deleteButtonDisabled">删除</Button>
             </ButtonGroup>
             <span style="margin-left:10px;" />
             <ButtonGroup size="large">
@@ -48,7 +44,7 @@
         </Card>
         <Card style="margin-top:10px;" :padding="0" :bordered="false">
           <Row>
-            <Table height="520" :loading="loading" :columns="tableColumn" :data="tableData" border stripe @on-selection-change="selectionChange"></Table>
+            <Table height="520" ref="roleTableRef" :loading="loading" :columns="tableColumn" :data="tableData" border stripe @on-selection-change="selectionChange"></Table>
           </Row>
           <Row type="flex" justify="center">
             <Page style="margin:10px;" :total="pageInfo.totalPages" :current="pageInfo.currentPage" :page-size="pageInfo.pageSize" :page-size-opts="pageInfo.pageSizeOpt" @on-change="changePage" @on-page-size-change="changeSize" show-elevator show-sizer show-total placement="top"></Page>
@@ -64,10 +60,7 @@
         </FormItem>
         <FormItem label="用户状态" prop="status">
           <Select v-model="modalFormItem.status">
-            <Option value='0'>不启用</Option>
-            <Option value='1'>正常</Option>
-            <Option value='2'>禁用</Option>
-            <Option value='3' disabled>删除</Option>
+            <Option v-for="item in statusList" :value="item.value" :key="item.value" :disabled="item.disabled">{{ item.label }}</Option>
           </Select>
         </FormItem>
         <FormItem label="备注" prop="descn">
@@ -75,14 +68,13 @@
         </FormItem>
       </Form>
     </Modal>
-
     <Modal title="关联资源" v-model="resourceModal" :closable="false" :mask-closable="false" :loading="modalLoading2" ok-text="提交" cancel-text="取消" @on-ok="resModalSubmit()" @on-cancel="modalCancel()" width=600>
-        <resource-tree ref="restree" :roleId="treedata.roleId"></resource-tree>
+      <resource-tree ref="restree" :roleId="treedata.roleId" @setCheckedResource="setCheckedResource"></resource-tree>
     </Modal>
-
   </div>
 </template>
 <script>
+import { axFindRolesWithPaging, axDeleteRole, axAddRole, axUpdateRole, axHasRelateUser, axUpdateRolePermission } from '@/api/roleinfo'
 import resourceTree from "./resource-tree"
 
 export default {
@@ -183,7 +175,7 @@ export default {
           key: "descn",
           title: "备注信息",
           align: "center",
-          width: 150
+          width: 250
         },
         {
           title: "操作",
@@ -204,7 +196,7 @@ export default {
                   },
                   on: {
                     click: () => {
-                      this.editUser(params);
+                      this.editRoleOper(params);
                     }
                   }
                 },
@@ -216,12 +208,12 @@ export default {
                     type: "error",
                     size: "small"
                   },
-                   style: {
+                  style: {
                     marginRight: "5px"
                   },
                   on: {
                     click: () => {
-                      this.deleteUser(params, true);
+                      this.deleteRoleButton(params, true);
                     }
                   }
                 },
@@ -246,22 +238,26 @@ export default {
         }
       ],
 
-      tableData: [
+      tableData: [],
+
+      statusList: [{
+          value: 0,
+          label: '不启用'
+        },
         {
-          id:1,
-          name:"cs1",
-          status:1,
-          createTime:null,
-          updateTime:null,
-          descn:"ccccsssss1"
-        },{
-          id:2,
-          name:"cs2",
-          status:2,
-          createTime:null,
-          updateTime:null,
-          descn:"ccccsssss2"
+          value: 1,
+          label: '正常'
+        },
+        {
+          value: 2,
+          label: '禁用'
         }
+        // ,
+        // {
+        //   value: 3,
+        //   label: '删除',
+        //   disabled:true
+        // }
       ],
 
       searchData: {
@@ -276,10 +272,8 @@ export default {
         pageSize: 10,
         pageSizeOpt: [10, 20, 30, 50]
       },
-      value1: [1, 2],
-
       addModal: false,
-      resourceModal:false,
+      resourceModal: false,
 
       modalFormItem: {
         modalTitle: "",
@@ -296,15 +290,17 @@ export default {
         ]
       },
 
-      treedata:{
-        roleId:0
+      treedata: {
+        roleId: 0
       },
 
       loading: true,
       modalLoading: true,
-      modalLoading2:true,
+      modalLoading2: true,
       tableSelectData: [],
-      canDelete: true
+      deleteButtonDisabled: true,
+      updateResourceData: [],
+      roleModalDataChanged: false
     };
   },
   methods: {
@@ -320,6 +316,7 @@ export default {
       this.refreshTable();
     },
     refreshTable() {
+      this.$Loading.start();
       this.loading = true;
       var data = {
         name: this.searchData.name,
@@ -328,26 +325,24 @@ export default {
         currentPage: this.pageInfo.currentPage,
         pageSize: this.pageInfo.pageSize
       };
-      var token = "";
-      this.$axios.get("/admin-server/role/findRolesWithPaging", {
-          params: { data: data, token: token }
-        })
-        .then(res => {
+      var token = "123";
+      //axios-获取角色信息
+      axFindRolesWithPaging({ data, token }).then(res => {
+        if (res.data.code == 200) {
           this.pageInfo.totalPages = res.data.data.total;
-
           this.tableData = res.data.data.list;
-
           this.loading = false;
-        })
-        .catch(error => {
-          this.$Notice.error({
-            title: "错误提示",
-            duration: 5,
-            desc: error + "<br/>无法获取后台数据！"
-          });
-
+          this.$Loading.finish();
+        } else {
+          this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
           this.loading = false;
-        });
+          this.$Loading.error();
+        }
+      }).catch(error => {
+        this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
+        this.loading = false;
+        this.$Loading.error();
+      });
     },
 
     searchSubmit() {
@@ -358,70 +353,92 @@ export default {
     },
 
     //添加记录
-    addData() {
+    addRoleButton() {
       this.modalFormItem = {};
       this.modalFormItem.gender = 1;
       this.modalFormItem.status = 1;
       this.modalFormItem.modalTitle = "添加角色";
       this.modalFormItem.modalSubmitType = "add";
- 
+
       this.addModal = true;
     },
     //修改记录
-    editUser(rowdata) {
+    editRoleOper(rowdata) {
       this.modalFormItem = rowdata.row;
-
       this.modalFormItem.modalTitle = "修改角色";
       this.modalFormItem.modalSubmitType = "edit";
       this.addModal = true;
+      //点击行删除时选中当前行
+      this.$refs.roleTableRef.selectAll(false);
+      this.$refs.roleTableRef.toggleSelect(rowdata.index);
     },
     //删除记录 
-    deleteData(data, isbatch) {
-      if (isbatch) {
+    deleteRoleButton(data, operator) {
+      this.$Loading.start();
+      if (operator) {
         this.tableSelectData = [];
         this.tableSelectData[0] = data.row;
+        //点击行删除时选中当前行
+        this.$refs.roleTableRef.selectAll(false);
+        this.$refs.roleTableRef.toggleSelect(data.index);
       }
+
+
       if (this.tableSelectData.length > 0) {
-        this.$Modal.confirm({
-          title: "提示",
-          content: "<h2>确定删除角色信息？</h2>",
-          onOk: () => {
-            let ids = new Array();
-            for (var i = 0; i < this.tableSelectData.length; i++) {
-              ids[i] = this.tableSelectData[i].id;
-            }
+        let ids = new Array();
+        for (var i = 0; i < this.tableSelectData.length; i++) {
+          ids[i] = this.tableSelectData[i].id;
+        }
+        let data = ids.join(",");
+        let token = "123";
+        axHasRelateUser({ data, token }).then(res => {
 
-            let postData = this.$qs.stringify({
-              data: JSON.stringify(ids),
-              token: "123"
-            });
+          if (res.data.code == 200) {
+            if (!res.data.data) {
+              this.$Modal.confirm({
+                title: "<font color='red'>删除确认</font>",
+                content: "<h3>确定删除选中角色信息？</h3>",
+                onOk: () => {
 
-            this.$axios
-              .post("/admin-server/role/deleteRole", postData)
-              .then(res => {
-                if (res.data.code == 200) {
-                  this.$Notice.success({
-                    // title: '提示消息',
-                    duration: 3,
-                    desc: "删除角色成功！"
+                  let params = new URLSearchParams();
+                  params.append('data', ids);
+                  params.append('token', token);
+
+                  //axios-删除角色
+                  axDeleteRole(params).then(res => {
+                    if (res.data.code == 200) {
+                      this.$Notice.success({ desc: "删除角色成功！" });
+                      this.refreshTable();
+                      this.deleteButtonDisabled = true;
+                      this.$Loading.finish();
+                    } else {
+                      this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+                      this.$Loading.error();
+                    }
+                  }).catch(error => {
+                    this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+                    this.loading = false;
+                    this.$Loading.error();
                   });
-                  this.refreshTable();
+
+                },
+                onCancel: () => {
                   this.$Loading.finish();
                 }
-                if (res.data.code == 500) {
-                  this.$Modal.error({
-                    width: 650,
-                    title: "错误提示",
-                    content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>500 " +
-                      res.data.msg +
-                      " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                      res.data.data +
-                      "</p>"
-                  });
-                  this.$Loading.error();
-                }
               });
+            } else {
+              this.$Modal.warning({ title: "删除提示", content: "该角色有关联用户，请先取消关联用户再删除角色！" });
+              this.$Loading.finish();
+            }
+          } else {
+            this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+            this.$Loading.error();
           }
+        }).catch(error => {
+          this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+          this.loading = false;
+          this.$Loading.error();
+          return;
         });
       }
     },
@@ -431,86 +448,51 @@ export default {
       this.$Loading.start();
       this.$refs[name].validate(valid => {
         if (valid) {
-          let postData = this.$qs.stringify({
-            data: JSON.stringify(this.modalFormItem),
-            token: "123"
-          });
-
-          //添加用户
+          let params = new URLSearchParams();
+          params.append('data', JSON.stringify(this.modalFormItem));
+          params.append('token', '123');
+          //添加角色
           if (this.modalFormItem.modalSubmitType == "add") {
-            this.$axios
-              .post("/admin-server/user/addUser", postData)
-              .then(res => {
-                if (res.data.code == 200) {
-                  this.$Notice.success({
-                    // title: '提示消息',
-                    duration: 5,
-                    desc: "角色添加成功！"
-                  });
-                  this.refreshTable();
-                  this.$refs[name].resetFields();
-                  this.$Loading.finish();
-                }
-                if (res.data.code == 500) {
-                  this.$Modal.error({
-                    width: 650,
-                    title: "错误提示",
-                    content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>500 " +
-                      res.data.msg +
-                      " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                      res.data.data +
-                      "</p>"
-                  });
-                  this.$Loading.error();
-                }
-              })
-              .catch(error => {
-                this.$Notice.error({
-                  title: "错误提示",
-                  duration: 10,
-                  desc: error + "<br/>无法获取后台数据！"
-                });
 
-                this.loading = false;
-              });
+            axAddRole(params).then(res => {
+              if (res.data.code == 200) {
+                this.$Notice.success({ desc: "角色添加成功！" });
+                this.refreshTable();
+                this.$refs[name].resetFields();
+                this.$Loading.finish();
+                this.addModal = false;
+              } else {
+                this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+                this.$Loading.error();
+              }
+            }).catch(error => {
+              this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+              this.loading = false;
+              this.$Loading.error();
+            });
 
             //修改用户
           } else if (this.modalFormItem.modalSubmitType == "edit") {
-            this.$axios
-              .post("/admin-server/user/updateUser", postData)
-              .then(res => {
-                if (res.data.code == 200) {
-                  this.$Notice.success({
-                    // title: '提示消息',
-                    duration: 5,
-                    desc: "角色修改成功！"
-                  });
-                  this.refreshTable();
-                  this.$refs[name].resetFields();
-                  this.$Loading.finish();
-                }
-                if (res.data.code == 500) {
-                  this.$Modal.error({
-                    width: 650,
-                    title: "错误提示",
-                    content: "<p style='text-align:left;color:red;font-size:20px;word-wrap:break-word; word-break:normal;'>500 " +
-                      res.data.msg +
-                      " </p><p style='font-size:14px;word-wrap:break-word; word-break:normal;'>详细内容：" +
-                      res.data.data + "</p>"
-                  });
-                  this.$Loading.error();
-                }
-              })
-              .catch(error => {
-                this.$Notice.error({
-                  title: "错误提示",
-                  duration: 10,
-                  desc: error + "<br/>无法获取后台数据！"
-                });
-                this.loading = false;
-              });
+
+            axUpdateRole(params).then(res => {
+              if (res.data.code == 200) {
+                this.$Notice.success({ desc: "角色修改成功！" });
+                this.refreshTable();
+                this.$refs[name].resetFields();
+                this.$Loading.finish();
+                this.addModal = false;
+              } else {
+                this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+                this.$Loading.error();
+              }
+            }).catch(error => {
+              this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+              this.loading = false;
+              this.$Loading.error();
+            });
           } else {
             this.$Message.error("Fail!  DATA ERROR!!!");
+            this.$Loading.error();
           }
         } else {
           setTimeout(() => {
@@ -519,10 +501,7 @@ export default {
               this.modalLoading = true;
             });
           }, 1000);
-          this.$Message.error({
-            content:'请检查表单填写信息!',
-            duration:3
-          });
+          this.$Message.error({ content: '请检查表单填写信息!' });
         }
       });
     },
@@ -530,24 +509,59 @@ export default {
       //this.$refs[name].resetFields();
     },
 
-    resModalSubmit(){
+    //修改角色资源提交
+    resModalSubmit() {
+      //资源改变后提交，未改变直接关闭modal
+      if (this.roleModalDataChanged) {
+        this.$Loading.start();
+        console.log(this.updateResourceData);
+        console.log(this.treedata.roleId);
+        let params = new URLSearchParams();
+        params.append("resourceIds", this.updateResourceData);
+        params.append("roleId", this.treedata.roleId);
+        params.append("token", "123");
 
+        //axios-修改角色资源信息
+        axUpdateRolePermission(params).then(res => {
+          if (res.data.code == 200) {
+            this.$Notice.success({ desc: "操作成功！" });
+            this.$Loading.finish();
+            this.resourceModal = false;
+          } else {
+            this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+            this.$Loading.error();
+          }
+        }).catch(error => {
+          this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+          this.$Loading.error();
+        });
+      }else{
+        this.resourceModal = false;
+      }
+    },
+
+    /**
+     * 获取子组件选中的资源
+     */
+    setCheckedResource( data) {
+      this.roleModalDataChanged = true;
+      this.updateResourceData = data;
     },
 
     //角色关联资源
-    updatePermission(data){
+    updatePermission(data) {
       var roleid = data.row.id;
-      this.treedata.roleId=roleid;
+      this.treedata.roleId = roleid;
+      this.resourceModal = true;
+      this.roleModalDataChanged = false;
       this.$refs.restree.findNodes(roleid);
-      this.resourceModal=true;
-
     },
 
     selectionChange(selection) {
       if (selection.length == 0) {
-        this.canDelete = true;
+        this.deleteButtonDisabled = true;
       } else if (selection.length >= 1) {
-        this.canDelete = false;
+        this.deleteButtonDisabled = false;
       }
       this.tableSelectData = selection;
     }

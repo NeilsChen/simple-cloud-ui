@@ -30,7 +30,9 @@
   </div>
 </template>
 <script>
+import {axFindPermissionTreeData} from '@/api/permissioninfo'
 export default {
+
   name: 'resource-tree',
   props: {
     roleId: Number
@@ -53,10 +55,9 @@ export default {
     checkChange(data) {
       this.allCheckedNodeId = [];
       this.getAllCheckedNodeId(this.treedata);
-      console.log(this.allCheckedNodeId);
+      this.$emit('setCheckedResource',this.allCheckedNodeId);
     },
     selectChange(data) {
-      console.log(data);
       this.resourceDetail = data[0];
     },
 
@@ -68,32 +69,19 @@ export default {
     //获取后台节点
     findNodes(roleid) {
       console.log(roleid);
-      let data = {"roleid":roleid,"status":"1"};
+      let data = JSON.stringify({ "roleid": roleid, "status": "1" });
       let token = "123";
-      this.$axios.get("/admin-server/permission/findPermissionTreeData", {
-          params: { data: data, token: token }
-        })
-        .then(res => {
-          if (res.data.code == 200) {
-            this.treedata = res.data.data;
-          } else {
-            this.$Notice.error({
-              title: "错误提示",
-              duration: 5,
-              desc: res + "<br/>无法获取后台数据！"
-            });
-          }
-        })
-        .catch(error => {
-          this.$Notice.error({
-            title: "错误提示",
-            duration: 5,
-            desc: error + "<br/>无法获取后台数据！"
-          });
-        });
 
+      axFindPermissionTreeData({ data, token }).then(res => {
+        if (res.data.code == 200) {
+          this.treedata = res.data.data;
+        } else {
+          this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+        }
+      }).catch(error => {
+        this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+      });
     },
-
     //获取所有勾选节点的id，包括父节点  
     getAllCheckedNodeId(parent) {
       parent.forEach(item => {
