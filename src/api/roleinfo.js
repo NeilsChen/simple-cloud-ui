@@ -9,23 +9,21 @@ export const saveErrorLogger = data => {
 }
 
 
-export const axFindAllRoles = ({ data, token }) => {
+export const axFindAllRoles = ( userId ) => {
   return axios.request({
     url: '/admin-server/role/findAllRoles',
     params: {
-      data:data,
-      token:token
+      userId:userId
     },
     method: 'get'
   })
 }
 
-export const axFindRolesWithPaging = ({ data, token }) => {
+export const axFindRolesWithPaging = (data) => {
   return axios.request({
     url: '/admin-server/role/findRolesWithPaging',
     params: {
-      data:data,
-      token:token
+      data:data
     },
     method: 'get'
   })

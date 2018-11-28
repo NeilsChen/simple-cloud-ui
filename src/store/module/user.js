@@ -40,8 +40,9 @@ export default {
           userName,
           password
         }).then(res => {
-          const data = res.data
-          commit('setToken', data.token)
+          console.log(res);
+          const data = res.data;
+          commit('setToken', data.data);
           resolve()
         }).catch(err => {
           reject(err)
@@ -51,7 +52,7 @@ export default {
     // 退出登录
     handleLogOut ({ state, commit }) {
       return new Promise((resolve, reject) => {
-        logout(state.token).then(() => {
+        logout().then(() => {
           commit('setToken', '')
           commit('setAccess', [])
           resolve()
@@ -68,13 +69,16 @@ export default {
     getUserInfo ({ state, commit }) {
       return new Promise((resolve, reject) => {
         try {
-          getUserInfo(state.token).then(res => {
-            const data = res.data
+         
+          getUserInfo().then(res => {
+            console.log(res);
+            const data = res.data.data
             commit('setAvator', data.avator)
-            commit('setUserName', data.name)
-            commit('setUserId', data.user_id)
+            commit('setUserName', data.username)
+            commit('setUserId', data.id)
             commit('setAccess', data.access)
             commit('setHasGetInfo', true)
+            console.log(state);
             resolve(data)
           }).catch(err => {
             reject(err)

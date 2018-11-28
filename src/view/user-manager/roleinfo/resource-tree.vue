@@ -69,10 +69,9 @@ export default {
     //获取后台节点
     findNodes(roleid) {
       console.log(roleid);
-      let data = JSON.stringify({ "roleid": roleid, "status": "1" });
-      let token = "123";
+      let data = { "roleid": roleid, "status": "1" };
 
-      axFindPermissionTreeData({ data, token }).then(res => {
+      axFindPermissionTreeData(data).then(res => {
         if (res.data.code == 200) {
           this.treedata = res.data.data;
         } else {

@@ -9,12 +9,12 @@ export const saveErrorLogger = data => {
 }
 
 
-export const axFindUsersWithPaging = ({ data, token }) => {
+export const axFindUsersWithPaging = ( data) => {
+  console.log(222);
   return axios.request({
     url: '/admin-server/user/findUsersWithPaging',
     params: {
-      data: data,
-      token: token
+      data: data
     },
     method: 'get'
   })

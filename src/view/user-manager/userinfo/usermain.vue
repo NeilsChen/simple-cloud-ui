@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <Row>
       <Col span="24">
@@ -115,7 +115,7 @@
           </div>
           <CheckboxGroup v-model="roleFormItem.roleList" @on-change="roleFormCheckAllGroupChange">
             <Checkbox v-for="item in roleFormItem.allRoles" :label="item.id" style="width:240px">
-              {{item.name.length>6?item.name.substr(0,5)+'..':item.name}}&nbsp; ({{item.descn.length>12?item.descn.substr(0,12)+'..':item.descn}})&nbsp;
+              {{item.name.length>15?item.name.substr(0,14)+'..':item.name}}&nbsp; ({{item.descn.length>12?item.descn.substr(0,12)+'..':item.descn}})&nbsp;
             </Checkbox>
           </CheckboxGroup>
         </FormItem>
@@ -422,7 +422,7 @@ export default {
 
       roleRuleValidate: {
         roleList: [
-          { required: true, type: 'array', min: 1, message: '最少选择一个角色', trigger: 'change' },
+          // { required: true, type: 'array', min: 1, message: '最少选择一个角色', trigger: 'change' },
           { type: 'array', max: 5, message: '最多选择五个角色', trigger: 'change' }
         ]
       },
@@ -449,6 +449,7 @@ export default {
       this.refreshTable();
     },
     refreshTable() {
+      
       this.$Loading.start();
       this.loading = true;
       var data = {
@@ -460,10 +461,9 @@ export default {
         currentPage: this.pageInfo.currentPage,
         pageSize: this.pageInfo.pageSize
       };
-      var token = "123";
 
       // axios-查询用户数据
-      axFindUsersWithPaging({ data, token }).then(res => {
+      axFindUsersWithPaging( data ).then(res => {
         if (res.data.code == 200) {
           this.pageInfo.totalPages = res.data.data.total;
           this.userData = res.data.data.list;
@@ -471,6 +471,7 @@ export default {
           this.$Loading.finish();
         } else {
           this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+          this.$Loading.error();
         }
       }).catch(err => {
         this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
@@ -487,11 +488,8 @@ export default {
       if (selectUser.length == 1) {
         userId = selectUser[0].id;
       }
-      var data = { "userId": userId };
-      var token = "123";
-
       //axios-查询用户角色
-      axFindAllRoles({ data, token }).then(res => {
+      axFindAllRoles( userId ).then(res => {
         if (res.data.code == 200) {
           this.roleFormItem.allRoles = res.data.data.allRole;
           this.roleFormItem.roleList = res.data.data.userRole;
@@ -561,8 +559,7 @@ export default {
               ids = ids + this.userTableSelectData[i].id;
             }
             let params = new URLSearchParams();
-            params.append('data', ids);
-            params.append('token', '123');
+            params.append('userIds', ids);
 
             //axios-删除用户
             axDeleteUser(params).then(res => {
@@ -596,7 +593,6 @@ export default {
 
           let params = new URLSearchParams();
           params.append('data', JSON.stringify(this.userFormItem));
-          params.append('token', '123');
 
           if (this.userFormItem.modalSubmitType == "add") {
             axAddUser(params).then(res => {

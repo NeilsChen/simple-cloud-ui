@@ -160,8 +160,7 @@ export default {
 
     deletePermission() {
       let params = new URLSearchParams();
-      params.append('data', JSON.stringify(this.resourceDetail.id));
-      params.append('token', "123");
+      params.append('id', this.resourceDetail.id);
       //axios-删除资源
       axDeletePermission(params).then(res => {
         if (res.data.code == 200) {
@@ -182,7 +181,6 @@ export default {
 
       let params = new URLSearchParams();
       params.append('data', JSON.stringify(this.resourceDetail));
-      params.append('token', "123");
 
       //axios-增加或修改资源
       axAddOrUpdatePermission(params).then(res => {
@@ -217,8 +215,7 @@ export default {
     initTreeData() {
       //获取后台节点
       let data = {};
-      let token = "123";
-      axFindPermissionTreeData({ data, token }).then(res => {
+      axFindPermissionTreeData(data).then(res => {
         if (res.data.code == 200) {
           this.treedata = res.data.data;
         } else {

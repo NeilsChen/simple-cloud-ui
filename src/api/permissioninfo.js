@@ -1,12 +1,9 @@
 import axios from '@/libs/api.request'
 
-export const axFindPermissionTreeData = ({ data, token }) => {
+export const axFindPermissionTreeData = (data) => {
   return axios.request({
     url: '/admin-server/permission/findPermissionTreeData',
-    params: {
-      data:data,
-      token:token
-    },
+    params: data,
     method: 'get'
   })
 }

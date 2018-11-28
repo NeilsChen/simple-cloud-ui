@@ -113,6 +113,15 @@ export default [
           title: '资源信息'
         },
         component: () => import('@/view/user-manager/resourceinfo/resourcemain.vue')
+      },
+      {
+        path: 'uploadAvator',
+        name: 'uploadAvator',
+        meta: {
+          icon: 'md-archive',
+          title: '上传头像'
+        },
+        component: () => import('@/view/user-manager/userinfo/uploadAvator.vue')
       }
     ]
   },
@@ -129,6 +138,7 @@ export default [
         path: 'dictionary',
         name: 'dictionary',
         meta: {
+          access: ['系统管理员'],
           icon: 'md-paper',
           title: '字典管理'
         },
@@ -481,8 +491,8 @@ export default [
     component: () => import('@/view/error-page/404.vue')
   },
   {
-    path: '/SYSTEM_MONITOR',
-    name: 'SYSTEM_MONITOR',
+    path: '/system-monitor',
+    name: 'system-monitor',
     meta: {
       icon: 'md-desktop',
       title: '系统监测'
@@ -490,8 +500,8 @@ export default [
     component: Main,
     children: [
       {
-        path: 'SERVICE-API',
-        name: 'SERVICE-API',
+        path: 'service-api',
+        name: 'service-api',
         meta: {
           icon: 'md-filing',
           title: '服务接口'
@@ -499,8 +509,8 @@ export default [
         component: () => import('@/view/monitor-manager/swagger.vue')
       },
       {
-        path: 'SERVICE-CENTER',
-        name: 'SERVICE-CENTER',
+        path: 'service-center',
+        name: 'service-center',
         meta: {
           icon: 'md-filing',
           title: '注册中心'
@@ -508,8 +518,8 @@ export default [
         component: () => import('@/view/monitor-manager/service-center.vue')
       },
       {
-        path: 'SERVICE_DETAIL',
-        name: 'SERVICE_DETAIL',
+        path: 'service-detail',
+        name: 'service-detail',
         meta: {
           icon: 'md-paper',
           title: '服务详情'

@@ -1,5 +1,7 @@
 import axios from 'axios'
 import store from '@/store'
+import router from '../router'
+
 // import { Spin } from 'iview'
 const addErrorLog = errorInfo => {
   const { statusText, status, request: { responseURL } } = errorInfo
@@ -17,12 +19,16 @@ class HttpRequest {
     this.baseUrl = baseUrl
     this.queue = {}
   }
-  getInsideConfig () {
+  getInsideConfig (url) {
     const config = {
       baseURL: this.baseUrl,
       headers: {
-        "content-Type":"application/x-www-form-urlencoded"
+        "Content-Type":"application/x-www-form-urlencoded"
       }
+    }
+    //请求头添加 Authorization  Token
+    if (url !== 'login') {
+      config.headers['Authorization'] = 'Bearer ' + store.state.user.token
     }
     return config
   }
@@ -47,6 +53,15 @@ class HttpRequest {
     // 响应拦截
     instance.interceptors.response.use(res => {
       this.destroy(url)
+      //请求返回代码=520时表示token验证失败，跳转到登录页面
+      if(res!=null && res.data!=null){
+        if(res.data.code==520){
+          store.commit('setToken','');
+          store.commit('setAccess','');
+          router.push("/login")
+        }
+      }
+     
       const { data, status } = res
       return { data, status }
     }, error => {
@@ -57,7 +72,7 @@ class HttpRequest {
   }
   request (options) {
     const instance = axios.create()
-    options = Object.assign(this.getInsideConfig(), options)
+    options = Object.assign(this.getInsideConfig(options.url), options)  // 添加 options.url
     this.interceptors(instance, options.url)
     return instance(options)
   }

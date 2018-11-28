@@ -10,7 +10,7 @@ const USER_MAP = {
   admin: {
     name: 'admin',
     user_id: '2',
-    access: ['admin'],
+    access: ['admin', '系统管理员'],
     token: 'admin',
     avator: 'https://avatars0.githubusercontent.com/u/20942571?s=460&v=4'
   }

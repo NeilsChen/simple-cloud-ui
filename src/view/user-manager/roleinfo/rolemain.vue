@@ -225,6 +225,9 @@ export default {
                     type: "default",
                     size: "small"
                   },
+                  style: {
+                    marginRight: "5px"
+                  },
                   on: {
                     click: () => {
                       this.updatePermission(params);
@@ -233,6 +236,8 @@ export default {
                 },
                 "关联资源"
               )
+              // ,
+              // h( "Button", { props: {  type: "default",  size: "small" }, style: { marginRight: "0px"  }, on: {click: () => {   this.updatePermission(params);}} }, "关联用户")
             ]);
           }
         }
@@ -327,7 +332,7 @@ export default {
       };
       var token = "123";
       //axios-获取角色信息
-      axFindRolesWithPaging({ data, token }).then(res => {
+      axFindRolesWithPaging(data).then(res => {
         if (res.data.code == 200) {
           this.pageInfo.totalPages = res.data.data.total;
           this.tableData = res.data.data.list;
@@ -389,57 +394,38 @@ export default {
         for (var i = 0; i < this.tableSelectData.length; i++) {
           ids[i] = this.tableSelectData[i].id;
         }
-        let data = ids.join(",");
-        let token = "123";
-        axHasRelateUser({ data, token }).then(res => {
 
-          if (res.data.code == 200) {
-            if (!res.data.data) {
-              this.$Modal.confirm({
-                title: "<font color='red'>删除确认</font>",
-                content: "<h3>确定删除选中角色信息？</h3>",
-                onOk: () => {
+        this.$Modal.confirm({
+          title: "<font color='red'>删除确认</font>",
+          content: "<h3>确定删除选中角色信息？</h3>",
+          onOk: () => {
 
-                  let params = new URLSearchParams();
-                  params.append('data', ids);
-                  params.append('token', token);
+            let params = new URLSearchParams();
+            params.append('userIds', ids);
 
-                  //axios-删除角色
-                  axDeleteRole(params).then(res => {
-                    if (res.data.code == 200) {
-                      this.$Notice.success({ desc: "删除角色成功！" });
-                      this.refreshTable();
-                      this.deleteButtonDisabled = true;
-                      this.$Loading.finish();
-                    } else {
-                      this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
-                      this.$Loading.error();
-                    }
-                  }).catch(error => {
-                    this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
-                    this.loading = false;
-                    this.$Loading.error();
-                  });
+            //axios-删除角色
+            axDeleteRole(params).then(res => {
+              if (res.data.code == 200) {
+                this.$Notice.success({ desc: "删除角色成功！" });
+                this.refreshTable();
+                this.deleteButtonDisabled = true;
+                this.$Loading.finish();
+              } else {
+                this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+                this.$Loading.error();
+              }
+            }).catch(error => {
+              this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
+              this.loading = false;
+              this.$Loading.error();
+            });
 
-                },
-                onCancel: () => {
-                  this.$Loading.finish();
-                }
-              });
-            } else {
-              this.$Modal.warning({ title: "删除提示", content: "该角色有关联用户，请先取消关联用户再删除角色！" });
-              this.$Loading.finish();
-            }
-          } else {
-            this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
-            this.$Loading.error();
+          },
+          onCancel: () => {
+            this.$Loading.finish();
           }
-        }).catch(error => {
-          this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
-          this.loading = false;
-          this.$Loading.error();
-          return;
         });
+
       }
     },
     //提交表单
@@ -535,7 +521,7 @@ export default {
           this.$Notice.error({ title: "错误提示", desc: error + "<br/>无法获取后台数据！" });
           this.$Loading.error();
         });
-      }else{
+      } else {
         this.resourceModal = false;
       }
     },
@@ -543,7 +529,7 @@ export default {
     /**
      * 获取子组件选中的资源
      */
-    setCheckedResource( data) {
+    setCheckedResource(data) {
       this.roleModalDataChanged = true;
       this.updateResourceData = data;
     },
