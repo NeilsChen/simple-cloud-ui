@@ -42,12 +42,13 @@
             <ButtonGroup size="large">
               <Button icon="md-add" @click="addUser">添加</Button>
               <Button icon="md-settings" @click="editUserRole" :disabled="canEditUserRole">修改用户角色</Button>
+              <Button icon="md-unlock" v-show="showResetPassword" @click="resetPassword" :disabled="canEditUserRole">重置密码</Button>
               <Button icon="md-close" @click="deleteUser" :disabled="canDelete">删除</Button>
             </ButtonGroup>
             <span style="margin-left:10px;" />
             <ButtonGroup size="large">
               <Button icon="md-refresh" @click="refreshTable">刷新</Button>
-              <Button icon="md-reorder" @click="showUserColumns">显示列</Button>
+              <!-- <Button icon="md-reorder" @click="showUserColumns">显示列</Button> -->
             </ButtonGroup>
           </Row>
         </Card>
@@ -125,7 +126,7 @@
   </div>
 </template>
 <script>
-import { axFindUsersWithPaging, axAddUser, axUpdateUser, axDeleteUser, axUpdateUserRole } from '@/api/userinfo'
+import { axFindUsersWithPaging, axAddUser, axUpdateUser, axDeleteUser, axUpdateUserRole, axResetPassword } from '@/api/userinfo'
 import { axFindAllRoles } from '@/api/roleinfo'
 export default {
   name: "userinfo-table",
@@ -432,13 +433,17 @@ export default {
       roleModalLoading: true,
       userTableSelectData: [],
       canEditUserRole: true,
-      canDelete: true
+      canDelete: true,
+      showResetPassword: false // 是否显示重置密码按钮
     };
   },
   methods: {
     init() {
-      //加载所有角色
-      //this.initRoles();
+      // 判断按钮权限
+      let ind = this.$store.state.user.access.indexOf("super-admin");
+      if (ind >= 0) {
+        this.showResetPassword = true;
+      }
     },
     changePage(page) {
       this.pageInfo.currentPage = page;
@@ -449,7 +454,7 @@ export default {
       this.refreshTable();
     },
     refreshTable() {
-      
+
       this.$Loading.start();
       this.loading = true;
       var data = {
@@ -463,7 +468,7 @@ export default {
       };
 
       // axios-查询用户数据
-      axFindUsersWithPaging( data ).then(res => {
+      axFindUsersWithPaging(data).then(res => {
         if (res.data.code == 200) {
           this.pageInfo.totalPages = res.data.data.total;
           this.userData = res.data.data.list;
@@ -489,7 +494,7 @@ export default {
         userId = selectUser[0].id;
       }
       //axios-查询用户角色
-      axFindAllRoles( userId ).then(res => {
+      axFindAllRoles(userId).then(res => {
         if (res.data.code == 200) {
           this.roleFormItem.allRoles = res.data.data.allRole;
           this.roleFormItem.roleList = res.data.data.userRole;
@@ -762,12 +767,50 @@ export default {
         this.roleFormItem.indeterminate = false;
         this.roleFormItem.checkAll = false;
       }
+    },
+    /**
+     * 重置用户密码
+     * @return {[type]} [description]
+     */
+    resetPassword() {
+      if (this.userTableSelectData.length > 0) {
+        this.$Modal.confirm({
+            title: "<font color='red'>重置确认</font>",
+            content: "<h3>确定重置选中用户密码？</h3>",
+            onOk: () => {
+              let ids = "";
+              for (var i = 0; i < this.userTableSelectData.length; i++) {
+                if (i > 0) {
+                  ids = ids + ","
+                }
+                ids = ids + this.userTableSelectData[i].id;
+              }
+              let params = new URLSearchParams();
+              params.append('ids', ids);
+              axResetPassword(params).then(res => {
+                if (res.data.code == 200) {
+                  this.$Notice.success({ desc: "重置密码成功！" });
+                  this.refreshTable();
+                  this.canEditUserRole = true;
+                  this.canDelete = true;
+                } else {
+                  this.$Notice.error({ title: "错误代码：" + res.data.code, desc: res.data.message });
+                }
+              }).catch(err => {
+                this.$Notice.error({ title: "错误提示", desc: err + "<br/>无法获取后台数据！" });
+                this.loading = false;
+              });
+            }
+          });
+        }else{
+          this.$Modal.warning({content: "请选择用户！"});
+        }
+      }
+    },
+    mounted() {
+      this.init();
+      this.refreshTable();
     }
-  },
-  mounted() {
-    this.init();
-    this.refreshTable();
-  }
-};
+  };
 
 </script>

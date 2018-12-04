@@ -1,17 +1,24 @@
 import axios from 'axios'
 import store from '@/store'
 import router from '../router'
-
+import {Notice} from 'iview'
 // import { Spin } from 'iview'
 const addErrorLog = errorInfo => {
-  const { statusText, status, request: { responseURL } } = errorInfo
-  let info = {
-    type: 'ajax',
-    code: status,
-    mes: statusText,
-    url: responseURL
+  console.log(errorInfo);
+  
+  if(errorInfo){
+    const { statusText, status, request: { responseURL } } = errorInfo
+    info = {
+      type: 'ajax',
+      code: status,
+      mes: statusText,
+      url: responseURL
+    }
+    if (!responseURL.includes('save_error_logger')) store.dispatch('addErrorLog', info)
+  }else{
+
+     Notice.error({title:"无法连接服务器！"});
   }
-  if (!responseURL.includes('save_error_logger')) store.dispatch('addErrorLog', info)
 }
 
 class HttpRequest {

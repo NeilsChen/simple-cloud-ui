@@ -27,6 +27,7 @@
             <keep-alive :include="cacheList">
               <router-view/>
             </keep-alive>
+            <ABackTop :height="100" :bottom="80" :right="50" container=".content-wrapper"></ABackTop>
           </Content>
         </Layout>
       </Content>
@@ -38,6 +39,7 @@ import SideMenu from './components/side-menu'
 import HeaderBar from './components/header-bar'
 import TagsNav from './components/tags-nav'
 import User from './components/user'
+import ABackTop from './components/a-back-top'
 import Fullscreen from './components/fullscreen'
 import Language from './components/language'
 import ErrorStore from './components/error-store'
@@ -47,9 +49,14 @@ import routers from '@/router/routers'
 import minLogo from '@/assets/images/logo-min.jpg'
 import maxLogo from '@/assets/images/logo.jpg'
 import './main.less'
+
+import config from '@/config'
+const baseUrl = process.env.NODE_ENV === 'development' ? config.baseUrl.dev : config.baseUrl.p
+
 export default {
   name: 'Main',
   components: {
+    ABackTop,
     SideMenu,
     HeaderBar,
     Language,
@@ -77,7 +84,12 @@ export default {
       return this.$store.state.app.tagRouter
     },
     userAvator () {
-      return this.$store.state.user.avatorImgPath
+      let imgpath = this.$store.state.user.avatorImgPath;
+      if(imgpath){
+        return baseUrl+"admin-server/file/avator/"+imgpath;
+      }else{
+        return require('@/assets/images/default-avator.jpg');
+      }
     },
     cacheList () {
       return ['ParentView', ...this.tagNavList.length ? this.tagNavList.filter(item => !(item.meta && item.meta.notCache)).map(item => item.name) : []]

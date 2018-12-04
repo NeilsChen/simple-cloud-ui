@@ -4,6 +4,7 @@ import { setToken, getToken } from '@/libs/util'
 export default {
   state: {
     userName: '',
+    nickName:'',
     userId: '',
     avatorImgPath: '',
     token: getToken(),
@@ -19,6 +20,9 @@ export default {
     },
     setUserName (state, name) {
       state.userName = name
+    },
+    setNickName (state, nickName) {
+      state.nickName = nickName
     },
     setAccess (state, access) {
       state.access = access
@@ -40,10 +44,9 @@ export default {
           userName,
           password
         }).then(res => {
-          console.log(res);
           const data = res.data;
           commit('setToken', data.data);
-          resolve()
+          resolve(res)
         }).catch(err => {
           reject(err)
         })
@@ -69,16 +72,16 @@ export default {
     getUserInfo ({ state, commit }) {
       return new Promise((resolve, reject) => {
         try {
-         
           getUserInfo().then(res => {
-            console.log(res);
+
             const data = res.data.data
+             console.log(data);
             commit('setAvator', data.avator)
             commit('setUserName', data.username)
+            commit('setNickName', data.nickname)
             commit('setUserId', data.id)
             commit('setAccess', data.access)
             commit('setHasGetInfo', true)
-            console.log(state);
             resolve(data)
           }).catch(err => {
             reject(err)

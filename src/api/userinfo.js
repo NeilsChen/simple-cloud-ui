@@ -10,7 +10,6 @@ export const saveErrorLogger = data => {
 
 
 export const axFindUsersWithPaging = ( data) => {
-  console.log(222);
   return axios.request({
     url: '/admin-server/user/findUsersWithPaging',
     params: {
@@ -19,6 +18,18 @@ export const axFindUsersWithPaging = ( data) => {
     method: 'get'
   })
 }
+
+
+export const axFindUserById = ( userId ) => {
+  return axios.request({
+    url: '/admin-server/user/findUserById',
+    params: {
+      id: userId
+    },
+    method: 'get'
+  })
+}
+
 
 export const axDeleteUser = ( data ) => {
   return axios.request({
@@ -29,7 +40,6 @@ export const axDeleteUser = ( data ) => {
 }
 
 export const axAddUser = ( data ) => {
-	console.log(data);
   return axios.request({
     url: '/admin-server/user/addUser',
     data: data,
@@ -38,9 +48,16 @@ export const axAddUser = ( data ) => {
 }
 
 export const axUpdateUser = ( data ) => {
-  console.log(data);
   return axios.request({
     url: '/admin-server/user/updateUser',
+    data: data,
+    method: 'post'
+  })
+}
+
+export const axUpdatePassword = ( data ) => {
+  return axios.request({
+    url: '/admin-server/user/updatePassword',
     data: data,
     method: 'post'
   })
@@ -49,6 +66,14 @@ export const axUpdateUser = ( data ) => {
 export const axUpdateUserRole = ( data ) => {
   return axios.request({
     url: '/admin-server/user/updateUserRole',
+    data: data,
+    method: 'post'
+  })
+}
+
+export const axResetPassword = ( data ) => {
+  return axios.request({
+    url: '/admin-server/user/resetPassword',
     data: data,
     method: 'post'
   })

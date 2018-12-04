@@ -1,11 +1,15 @@
 <template>
   <div class="user-avator-dropdown">
     <Dropdown @on-click="handleClick">
-      <Avatar :src="userAvator" />
+      
+      <Button type="text" size="large">
+        <Avatar :src="userAvator" />
+        {{this.$store.state.user.nickName}}
+        {{this.$store.state.user.access}}
+      </Button>
       <Icon :size="18" type="md-arrow-dropdown"></Icon>
       <DropdownMenu slot="list">
         <DropdownItem name="userInfoDetail">个人信息</DropdownItem>
-        <DropdownItem name="updateUserPassword">修改密码</DropdownItem>
         <DropdownItem name="logout" divided>退出登录</DropdownItem>
       </DropdownMenu>
     </Dropdown>
@@ -37,7 +41,7 @@ export default {
           })
           break
         case 'userInfoDetail':
-          this.$router.push({ name: 'uploadAvator' })
+          this.$router.push({ name: 'ownspace' })
           break
 
       }

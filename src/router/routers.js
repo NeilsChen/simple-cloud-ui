@@ -82,6 +82,7 @@ export default [
     path: '/user-manager',
     name: 'user-manager',
     meta: {
+      access: ['super-admin','admin'],
       icon: 'md-person',
       title: '用户管理'
     },
@@ -114,15 +115,25 @@ export default [
         },
         component: () => import('@/view/user-manager/resourceinfo/resourcemain.vue')
       },
-      {
-        path: 'uploadAvator',
-        name: 'uploadAvator',
-        meta: {
-          icon: 'md-archive',
-          title: '上传头像'
+      // {
+      //   path: 'uploadAvator',
+      //   name: 'uploadAvator',
+      //   meta: {
+      //     icon: 'md-archive',
+      //     title: '上传头像'
+      //   },
+      //   component: () => import('@/view/user-manager/userinfo/uploadAvator.vue')
+      // },
+      { 
+        path: 'ownspace',
+        name: 'ownspace',
+        meta:{
+          hideInMenu: true,
+          icon:'md-person',
+          title: '个人中心',
         },
-        component: () => import('@/view/user-manager/userinfo/uploadAvator.vue')
-      }
+        component: () => import('@/view/own-space/own-space.vue') 
+      },
     ]
   },
   {
@@ -494,6 +505,7 @@ export default [
     path: '/system-monitor',
     name: 'system-monitor',
     meta: {
+      access: ['super-admin','admin'],
       icon: 'md-desktop',
       title: '系统监测'
     },
