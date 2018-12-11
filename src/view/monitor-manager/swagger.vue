@@ -1,3 +1,16 @@
 <template>
-    <iframe src='http://localhost:8088/swagger-ui.html' id='show' width='100%' height="780px" frameborder=0 name='showHere' ></iframe>
+    <iframe :src='srcUrl' id='show' width='100%' height="780px" frameborder=0 name='showHere' ></iframe>
 </template>
+<script>
+import config from '@/config'
+const baseIP= process.env.NODE_ENV === 'development' ? config.baseUrl.devIP : config.baseUrl.proIP;
+
+export default {
+  name: 'swagger-ui',
+  data() {
+  	return{
+  		srcUrl:baseIP+":8088/swagger-ui.html"
+  	}
+  }
+}
+</script>

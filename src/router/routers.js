@@ -115,15 +115,6 @@ export default [
         },
         component: () => import('@/view/user-manager/resourceinfo/resourcemain.vue')
       },
-      // {
-      //   path: 'uploadAvator',
-      //   name: 'uploadAvator',
-      //   meta: {
-      //     icon: 'md-archive',
-      //     title: '上传头像'
-      //   },
-      //   component: () => import('@/view/user-manager/userinfo/uploadAvator.vue')
-      // },
       { 
         path: 'ownspace',
         name: 'ownspace',
@@ -140,6 +131,7 @@ export default [
     path: '/system-manager',
     name: 'system-manager',
     meta: {
+      access: ['super-admin','admin'],
       icon: 'md-cog',
       title: '系统管理'
     },
@@ -149,7 +141,7 @@ export default [
         path: 'dictionary',
         name: 'dictionary',
         meta: {
-          access: ['系统管理员'],
+        access: ['super-admin','admin'],
           icon: 'md-paper',
           title: '字典管理'
         },
@@ -159,10 +151,21 @@ export default [
         path: 'loggerinfo',
         name: 'loggerinfo',
         meta: {
+          access: ['super-admin','admin'],
           icon: 'md-document',
           title: '日志管理'
         },
         component: () => import('@/view/system-manager/loggerinfo.vue')
+      },
+      {
+        path: 'schedule',
+        name: 'schedule',
+        meta: {
+          access: ['super-admin','admin'],
+          icon: 'md-alarm',
+          title: '定时任务'
+        },
+        component: () => import('@/view/system-manager/schedule.vue')
       }
     ]
   },

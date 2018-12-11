@@ -51,7 +51,7 @@ import maxLogo from '@/assets/images/logo.jpg'
 import './main.less'
 
 import config from '@/config'
-const baseUrl = process.env.NODE_ENV === 'development' ? config.baseUrl.dev : config.baseUrl.p
+const baseUrl = process.env.NODE_ENV === 'development' ? config.baseUrl.dev : config.baseUrl.pro
 
 export default {
   name: 'Main',
@@ -85,7 +85,9 @@ export default {
     },
     userAvator () {
       let imgpath = this.$store.state.user.avatorImgPath;
+      console.log(imgpath);
       if(imgpath){
+         console.log(baseUrl+"admin-server/file/avator/"+imgpath);
         return baseUrl+"admin-server/file/avator/"+imgpath;
       }else{
         return require('@/assets/images/default-avator.jpg');

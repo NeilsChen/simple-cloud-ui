@@ -14,7 +14,7 @@
               </Col>
               <Col span="6">
               <Upload :headers="headers" :show-upload-list="false" :format="['jpg','jpeg','png','gif']"
-        :max-size="1048" :on-success="uploadSuccess" action="http://localhost:8088/admin-server/uploadAvator">
+        :max-size="1048" :on-success="uploadSuccess" :action="actionUrl">
         		<Tooltip theme="light" placement="right">
 	                <Button type="dashed" size="small">上传头像</Button>
 	                <div slot="content">
@@ -126,6 +126,7 @@ export default {
       }
     };
     return {
+      actionUrl:baseUrl+'admin-server/uploadAvator',
       userForm: {
         id: ',',
         avator: '',
@@ -265,6 +266,7 @@ export default {
     },
     init() {
       this.headers.Authorization = "Bearer "+this.$store.state.user.token;
+      this.headers['Content-Type'] = 'application/x-www-form-urlencoded'; //跨域
       let userId = this.$store.state.user.userId;
       axFindUserById(userId).then(res => {
         if (res.data.code == 200) {
